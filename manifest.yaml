@@ -8,24 +8,27 @@ authors:
     github: faghasemi
 bibEntries:
   - |
-      @incollection{Gaifman1982,
-        author    = {Haim Gaifman},
-        title     = {On Local and Non-Local Properties},
-        booktitle = {Proceedings of the Herbrand Symposium},
-        series    = {Studies in Logic and the Foundations of Mathematics},
-        volume    = {107},
-        pages     = {105--135},
-        publisher = {Elsevier},
-        year      = {1982},
-        doi       = {10.1016/S0049-237X(08)71879-2}
-      }
+    @incollection{Gaifman1982,
+      author    = {Haim Gaifman},
+      title     = {On Local and Non-Local Properties},
+      booktitle = {Proceedings of the Herbrand Symposium},
+      series    = {Studies in Logic and the Foundations of Mathematics},
+      volume    = {107},
+      pages     = {105--135},
+      publisher = {Elsevier},
+      year      = {1982},
+      doi       = {10.1016/S0049-237X(08)71879-2}
+    }
   - |
-      @book{Libkin2004,
-        author    = {Leonid Libkin},
-        title     = {Elements of Finite Model Theory},
-        series    = {Texts in Theoretical Computer Science. An EATCS Series},
-        publisher = {Springer},
-        year      = {2004},
-        doi       = {10.1007/978-3-662-07003-1},
-        isbn      = {3-540-21202-7}
-      }
+    @book{Libkin2004,
+      author    = {Leonid Libkin},
+      title     = {Elements of Finite Model Theory},
+      series    = {Texts in Theoretical Computer Science. An EATCS Series},
+      publisher = {Springer},
+      year      = {2004},
+      doi       = {10.1007/978-3-662-07003-1},
+      isbn      = {3-540-21202-7}
+    }
+issue:
+  repositoryId: 1320232165
+  number: 207
