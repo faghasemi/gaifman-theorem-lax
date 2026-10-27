@@ -12,19 +12,22 @@ most `r` from `a` to `b`.
 
 An `r`-local formula around a tuple of anchor variables is represented by a
 syntax in which every quantifier is explicitly restricted to the union of the
-radius-`r` balls around those anchors. Its atomic terms may refer to anchors,
-locally bound variables, and vocabulary constants. This is the syntactic notion
-of locality used by Gaifman's normal-form theorem, not merely a semantic
-invariance property.
+radius-`r` balls around those anchors and around the interpretations of all
+vocabulary constants. Its atomic terms may refer to anchors, locally bound
+variables, and vocabulary constants. This is the syntactic notion of locality
+used by Gaifman's normal-form theorem, not merely a semantic invariance
+property.
 
 # Formalization notes
 
 Anchor variables and locally bound variables have separate types. This prevents
 a newly quantified variable from silently becoming an additional centre of the
 neighbourhood. The semantics of the local existential constructor chooses an
-element in the ball around one of the original anchors and extends only the
-bound-variable environment. Negation supplies restricted universal
-quantification in the usual way.
+element in the ball around one of the original anchors or a vocabulary constant
+and extends only the bound-variable environment. Negation supplies restricted
+universal quantification in the usual way. Including constants as centres is
+the extension made immediately before Theorem 4.22 in Libkin's *Elements of
+Finite Model Theory*.
 
 Distance is defined by bounded walks instead of a minimum taking the value
 infinity. At radius zero it is equality; the successor clause either uses a
@@ -51,10 +54,12 @@ def distanceAtMost {σ : Vocabulary} {M : Type*} (A : Structure σ M) :
       distanceAtMost A r a b ∨
         ∃ c : M, gaifmanAdjacent A a c ∧ distanceAtMost A r c b
 
-/-- Membership in the union of the radius-`r` balls around the tuple `anchors`. -/
+/-- Membership in the union of the radius-`r` balls around `anchors` and the
+interpretations of all vocabulary constants. -/
 def inBallAround {σ : Vocabulary} {M : Type*} (A : Structure σ M)
     (r : ℕ) {k : ℕ} (anchors : Fin k → M) (x : M) : Prop :=
-  ∃ i : Fin k, distanceAtMost A r (anchors i) x
+  (∃ i : Fin k, distanceAtMost A r (anchors i) x) ∨
+    ∃ c : σ.Constant, distanceAtMost A r (A.constant c) x
 
 /-- A term in a local formula, distinguishing the fixed anchor variables from
 variables introduced by restricted quantifiers. -/
@@ -66,8 +71,8 @@ inductive LocalTerm (σ : Vocabulary) (anchorCount boundCount : ℕ) : Type
   /-- A constant of the vocabulary. -/
   | const (c : σ.Constant)
 
-/-- Formulas whose quantifiers are all restricted to the radius-`r` ball around
-the original `anchorCount` variables. -/
+/-- Formulas whose quantifiers are all restricted to the radius-`r` balls
+around the original `anchorCount` variables and the vocabulary constants. -/
 inductive LocalFormula (σ : Vocabulary) (anchorCount r : ℕ) : ℕ → Type
   /-- A relation atom. -/
   | rel {boundCount : ℕ} (R : σ.Relation)
@@ -82,8 +87,8 @@ inductive LocalFormula (σ : Vocabulary) (anchorCount r : ℕ) : ℕ → Type
   /-- Disjunction. -/
   | or {boundCount : ℕ} (φ ψ : LocalFormula σ anchorCount r boundCount) :
       LocalFormula σ anchorCount r boundCount
-  /-- Existential quantification restricted to the radius-`r` ball around the
-  original anchors. -/
+  /-- Existential quantification restricted to the radius-`r` balls around the
+  original anchors and the vocabulary constants. -/
   | ex {boundCount : ℕ} (φ : LocalFormula σ anchorCount r (boundCount + 1)) :
       LocalFormula σ anchorCount r boundCount
 

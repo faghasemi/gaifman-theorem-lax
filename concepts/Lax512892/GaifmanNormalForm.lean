@@ -8,15 +8,17 @@ type: theorem
 ---
 Every first-order formula over a finite relational vocabulary has an effective,
 uniform translation into a Boolean combination of formulas local around its
-free tuple and basic local sentences. For one common radius `r`, a basic local
-sentence asserts that there are `s` witnesses, pairwise at Gaifman distance
-greater than `2r`, all satisfying the same one-variable `r`-local formula.
+free tuple and basic local sentences. At radius `r`, a basic local sentence
+asserts that there are `s` witnesses, pairwise at Gaifman distance greater than
+`2r`, all satisfying the same one-variable `r`-local formula.
 
 If the input has quantifier rank `q` and `k` free variables, the radius can be
 chosen at most `7^q`, and every basic local sentence needs at most `q + k`
-witnesses. When the input is a sentence, no local formula with free variables
-occurs: its normal form is a Boolean combination solely of basic local
-sentences. The equivalence is over all finite structures.
+witnesses. When the input is a sentence, every constituent of the normal form
+is itself a sentence. This closedness condition is enforced by the index of
+`NormalForm`: a value of type `NormalForm σ 0` can contain only zero-anchor
+local formulas and basic local sentences. The equivalence is over all finite
+structures.
 
 This is the uniform formulation of Gaifman's theorem used in Theorem 4.22 of
 Libkin's *Elements of Finite Model Theory*, following Gaifman's original
@@ -24,10 +26,15 @@ locality theorem.
 
 # Formalization notes
 
-The output syntax is reified. `NormalForm σ k` stores its common radius and a
-Boolean combination whose atoms are either local formulas around the `k` free
-variables or basic local sentences. This permits the radius, witness, and
-sentence-only conditions to be stated directly about every atom that occurs.
+The output syntax is reified. `NormalForm σ k` is a Boolean combination whose
+atoms are either local formulas around the `k` free variables or basic local
+sentences; every atom records its own radius. This permits the uniform radius
+bound and the witness bound to be stated directly about every atom that occurs,
+without incorrectly requiring unrelated constituents to use one common radius.
+In the sentence case `k = 0`, closedness follows from the syntax rather than
+from excluding zero-anchor local formulas; such closed local formulas are
+needed, for example, to express quantifier-free facts about constants or
+nullary relations.
 
 The theorem quantifies once over a single translation function, before any
 input formula or structure. This records uniformity more faithfully than a
@@ -95,50 +102,57 @@ def Sat {σ : Vocabulary} {M : Type*} {r : ℕ} (A : Structure σ M)
 
 end BasicLocalSentence
 
-/-- A Gaifman normal form for a formula with `k` free variables. All its atoms
-share the stored locality radius. -/
+/-- An atom of a Gaifman normal form. Each atom carries its own locality
+radius. -/
+inductive NormalAtom (σ : Vocabulary) (k : ℕ) : Type
+  /-- A formula local around the `k` free variables. -/
+  | local (r : ℕ) (formula : LocalFormula σ k r 0)
+  /-- A basic local sentence. -/
+  | basic (r : ℕ) (sentence : BasicLocalSentence σ r)
+
+/-- A Gaifman normal form for a formula with `k` free variables. -/
 structure NormalForm (σ : Vocabulary) (k : ℕ) where
-  /-- The common locality radius. -/
-  radius : ℕ
   /-- A Boolean combination of local formulas and basic local sentences. -/
-  body : BooleanCombination
-    (LocalFormula σ k radius 0 ⊕ BasicLocalSentence σ radius)
+  body : BooleanCombination (NormalAtom σ k)
 
 namespace NormalForm
 
 /-- Satisfaction of a normal form under an environment for its free variables. -/
 def Sat {σ : Vocabulary} {M : Type*} {k : ℕ} (A : Structure σ M)
     (env : Fin k → M) (nf : NormalForm σ k) : Prop :=
-  nf.body.eval (Sum.elim
-    (fun ψ => ψ.Sat A env Fin.elim0)
-    (fun basic => basic.Sat A))
+  nf.body.eval fun atom =>
+    match atom with
+    | .local _ ψ => ψ.Sat A env Fin.elim0
+    | .basic _ basic => basic.Sat A
+
+/-- Every constituent occurring in `nf` has radius at most `bound`. -/
+def RadiiBounded {σ : Vocabulary} {k : ℕ}
+    (nf : NormalForm σ k) (bound : ℕ) : Prop :=
+  ∀ atom : NormalAtom σ k, atom ∈ nf.body.atoms →
+    match atom with
+    | .local r _ => r ≤ bound
+    | .basic r _ => r ≤ bound
 
 /-- Every basic local sentence occurring in `nf` uses at most `bound`
 witnesses. -/
 def WitnessesBounded {σ : Vocabulary} {k : ℕ}
     (nf : NormalForm σ k) (bound : ℕ) : Prop :=
-  ∀ basic : BasicLocalSentence σ nf.radius,
-    Sum.inr basic ∈ nf.body.atoms → basic.witnessCount ≤ bound
-
-/-- No local-formula atom occurs in `nf`. -/
-def ContainsOnlyBasicSentences {σ : Vocabulary} {k : ℕ}
-    (nf : NormalForm σ k) : Prop :=
-  ∀ ψ : LocalFormula σ k nf.radius 0, Sum.inl ψ ∉ nf.body.atoms
+  ∀ (r : ℕ) (basic : BasicLocalSentence σ r),
+    NormalAtom.basic r basic ∈ nf.body.atoms → basic.witnessCount ≤ bound
 
 end NormalForm
 
 /-- **Gaifman's normal-form theorem.** There is a uniform transformation of
 every first-order formula over `σ` into an equivalent Gaifman normal form. For
-an input of quantifier rank `q` with `k` free variables, its common radius is at
-most `7 ^ q`, each basic local sentence has at most `q + k` witnesses, and a
-sentence is translated using basic local sentences only. Equivalence holds in
-every finite `σ`-structure. -/
+an input of quantifier rank `q` with `k` free variables, every constituent has
+radius at most `7 ^ q`, and each basic local sentence has at most `q + k`
+witnesses. If the input is a sentence, the result has type `NormalForm σ 0`, so
+every constituent is closed. Equivalence holds in every finite `σ`-structure. -/
 axiom gaifmanNormalForm (σ : Vocabulary) :
     ∃ translate : (k : ℕ) → Formula σ k → NormalForm σ k,
       ∀ (k : ℕ) (φ : Formula σ k),
-        (translate k φ).radius ≤ 7 ^ φ.quantifierRank ∧
+        (translate k φ).RadiiBounded (7 ^ φ.quantifierRank) ∧
         (translate k φ).WitnessesBounded (φ.quantifierRank + k) ∧
-        (k = 0 → (translate k φ).ContainsOnlyBasicSentences) ∧
         ∀ {M : Type} [Fintype M] (A : Structure σ M) (env : Fin k → M),
           φ.Sat A env ↔ (translate k φ).Sat A env
 
